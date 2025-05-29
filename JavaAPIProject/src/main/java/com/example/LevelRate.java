@@ -1,5 +1,6 @@
 package com.example;
 
+import com.example.Lib.WebRequests;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -12,7 +13,7 @@ public class LevelRate {
     /**
      * Array of total XP required for each level
      */
-    private final int[] xpRequired;
+    private int[] xpRequired;
 
     /**
      *
@@ -25,6 +26,17 @@ public class LevelRate {
         for (int i = 0; i < levels.length(); i++) {
             xpRequired[i] = levels.getJSONObject(i).getInt("experience");
         }
+    }
+
+    // No-args constructor for Jackson deserializer
+    public LevelRate() {
+    }
+
+    public int[] getXpRequired() {
+        return xpRequired;
+    }
+    public void setXpRequired(int[] xpRequired) {
+        this.xpRequired = xpRequired;
     }
 
     /**

@@ -1,5 +1,7 @@
 package com.example;
 
+import com.example.Lib.Utils;
+
 import java.io.IOException;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
@@ -7,8 +9,6 @@ import java.util.concurrent.TimeUnit;
 public class Battle {
     private Pokemon player1Pokemon;
     private Pokemon player2Pokemon;
-
-    private boolean battleFinished = false;
 
     public Battle(Pokemon player1Pokemon, Pokemon player2Pokemon) {
         this.player1Pokemon = player1Pokemon;
@@ -31,40 +31,59 @@ public class Battle {
     }
 
     private void showMenu(Scanner scan) throws IOException, InterruptedException {
-        while (!battleFinished) {
+        PokemonMove[] moves = player1Pokemon.getLearntMoves();
+        while (true) {
             Utils.clearScreen();
+
+            String p1Bar = Utils.progressBar(player1Pokemon.getCurrentHp(), player1Pokemon.getHpStat(), 30);
+            String p2Bar = Utils.progressBar(player2Pokemon.getCurrentHp(), player2Pokemon.getHpStat(), 30);
+
             System.out.println("You -> " + player1Pokemon.getName() + " (Lvl " + player1Pokemon.getLevel() + ")");
-            System.out.println(" - HP: " + player1Pokemon.hpFraction());
+            System.out.println(" - HP: " + p1Bar + " (" + player1Pokemon.hpFraction() + ")");
             System.out.println("Player 2 -> " + player2Pokemon.getName() + " (Lvl " + player2Pokemon.getLevel() + ")");
-            System.out.println(" - HP: " + player2Pokemon.hpFraction());
+            System.out.println(" - HP: " + p2Bar + " (" + player2Pokemon.hpFraction() + ")");
             System.out.println();
-            System.out.println(" [1] Instakill (temporary)"); // TODO: Implement moves
+
+            if (checkWin(scan)) {
+                break;
+            }
+
+            int moveNum = 0;
+            for (int i = 0; i < moves.length; i++) {
+                PokemonMove move = moves[i];
+                if (move == null) continue;
+                System.out.println(" [" + (i + 1) + "] " + move.getName());
+                moveNum++;
+            }
             System.out.println();
-            System.out.println("Choose your move:");
-            System.out.print("# ");
-            String input = scan.nextLine();
-            if (input.equals("1")) {
-                useMove(scan);
+            int choice = Utils.askInt(scan, "Choose your move:") - 1;
+            if (choice >= 0 && choice < moveNum) {
+                useMove(scan, choice);
+            } else {
+                Utils.slowPrintlnPause("That is not a valid choice.", 30, scan);
             }
         }
     }
 
-    private void useMove(Scanner scan) throws IOException, InterruptedException {
-        Utils.slowPrintln(player1Pokemon.getName() + " used Instakill!", 50, scan);
-        System.out.print(player2Pokemon.getName() + ": " + player2Pokemon.hpFraction());
-        player2Pokemon.takeDamage(999999);
-        System.out.println(" -> " + player2Pokemon.hpFraction());
+    private void useMove(Scanner scan, int moveIndex) throws IOException, InterruptedException {
+        PokemonMove move = player1Pokemon.getLearntMoves()[moveIndex];
 
-        checkWin(scan);
+        Utils.slowPrintln(player1Pokemon.getName() + " used " + move.getName() + "!", 50, scan);
+        TimeUnit.MILLISECONDS.sleep(300);
+
+        int damage = player2Pokemon.calculateDamageTaken(move, player1Pokemon);
+        player2Pokemon.takeDamage(damage);
+
+        TimeUnit.MILLISECONDS.sleep(300);
     }
 
-    private void checkWin(Scanner scan) throws IOException, InterruptedException {
+    private boolean checkWin(Scanner scan) throws IOException, InterruptedException {
         if (player1Pokemon.getCurrentHp() == 0) {
             Utils.slowPrintln(player1Pokemon.getName() + " has fainted.", 50, scan);
         } else if (player2Pokemon.getCurrentHp() == 0) {
             Utils.slowPrintln(player2Pokemon.getName() + " has fainted.", 50, scan);
             player1Pokemon.defeatPokemon(player2Pokemon);
-        } else return;
-        battleFinished = true;
+        } else return false;
+        return true;
     }
 }
