@@ -28,25 +28,38 @@ public class WebRequests {
         URL url = new URL(endpoint);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestMethod("GET");
-        return bufferString(endpoint, connection);
+        return receiveBufferString(endpoint, connection);
     }
 
-    public static String postJson(String endpoint, String json) throws IOException {
+    public static JSONObject postJson(String endpoint, String json) throws IOException {
         URL url = new URL(endpoint);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestMethod("POST");
         // https://www.baeldung.com/httpurlconnection-post
+        writeOutputBuffer(endpoint, json, connection);
+        return new JSONObject(receiveBufferString(endpoint, connection));
+    }
+    public static JSONObject putJson(String endpoint, String json) throws IOException {
+        URL url = new URL(endpoint);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("PUT");
+        // https://www.baeldung.com/httpurlconnection-post
+        writeOutputBuffer(endpoint, json, connection);
+        return new JSONObject(receiveBufferString(endpoint, connection));
+    }
+
+    // Write the JSON into the output stream to send as the request body
+    private static void writeOutputBuffer(String endpoint, String json, HttpURLConnection connection) throws IOException {
         connection.setRequestProperty("Content-Type", "application/json");
         connection.setDoOutput(true);
         try (OutputStream outputStream = connection.getOutputStream()) {
             byte[] input = json.getBytes(StandardCharsets.UTF_8);
             outputStream.write(input, 0, input.length);
         }
-        return bufferString(endpoint, connection);
     }
 
     // Get the string from the buffer stream
-    private static String bufferString(String endpoint, HttpURLConnection connection) throws IOException {
+    private static String receiveBufferString(String endpoint, HttpURLConnection connection) throws IOException {
         BufferedReader buffer = new BufferedReader(new InputStreamReader(connection.getInputStream()));
         String bufferLine;
         StringBuilder res = new StringBuilder();

@@ -31,5 +31,7 @@ public class User {
     public void addPokemon(Pokemon pokemon) {
         pokemons.add(pokemon);
     }
-
+    public void setPokemon(int index, Pokemon pokemon) {
+        pokemons.set(index, pokemon);
+    }
 }

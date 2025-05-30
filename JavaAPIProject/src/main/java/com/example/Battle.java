@@ -83,6 +83,7 @@ public class Battle {
         } else if (player2Pokemon.getCurrentHp() == 0) {
             Utils.slowPrintln(player2Pokemon.getName() + " has fainted.", 50, scan);
             player1Pokemon.defeatPokemon(player2Pokemon);
+
         } else return false;
         return true;
     }

@@ -1,29 +1,30 @@
 package com.example;
 
-import com.example.Lib.JSONTools;
 import com.example.Lib.Utils;
 import com.example.Lib.WebRequests;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.javalin.Javalin;
 import org.json.JSONObject;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class App {
     private static Pokemon pokemon;
-    private static String serverUrl = Constants.SERVER_API_BASE;
+    private static User user;
+    private static String serverBase = Constants.SERVER_API_BASE;
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws IOException, InterruptedException, URISyntaxException {
         boolean debug = isDebug();
         Scanner scan = new Scanner(System.in);
 
         Utils.clearScreen();
 
-        User user = null;
+        user = null;
 
         while (user == null) {
             Utils.clearScreen();
@@ -40,18 +41,20 @@ public class App {
                 case "1":
                     System.out.print("Please enter your username:\n> ");
                     String username = scan.nextLine();
-                    String data = WebRequests.getText(serverUrl + "/users/" + username);
-                    user = objectMapper.readValue(data, User.class);
+                    try {
+                        String data = WebRequests.getText(serverBase + "/users/" + username);
+                        user = objectMapper.readValue(data, User.class);
+                    } catch (FileNotFoundException e) {
+                        System.out.println("Could not find user");
+                    }
                     break;
                 case "2":
                     System.out.print("Please enter the username to register:\n> ");
                     String registerUsername = scan.nextLine();
-                    WebRequests.postJson(serverUrl + "/users", new JSONObject(Map.of(
+                    WebRequests.postJson(serverBase + "/users", new JSONObject(Map.of(
                             "username", registerUsername
                     )).toString());
                     System.out.println("Successfully registered with username '" + registerUsername + "'");
-                    System.out.print("Press enter to continue");
-                    scan.nextLine();
                     break;
 
                 case "R":
@@ -60,12 +63,15 @@ public class App {
                     break;
                 case "U":
                     System.out.print("Please enter the server URL:\n> ");
-                    serverUrl = scan.nextLine();
+                    serverBase = scan.nextLine();
+                    System.out.println("Successfully changed server URL");
                     break;
                 default:
                     System.out.println("Invalid input");
-                    System.out.print("Press enter to continue");
-                    scan.nextLine();
+            }
+            if (user == null) {
+                System.out.print("Press enter to continue");
+                scan.nextLine();
             }
         }
 
@@ -77,8 +83,9 @@ public class App {
             pokemon.fetchData();
             System.out.println("Fetched data for " + pokemon.getName());
 
+            user.addPokemon(pokemon);
             String pokemonJson = objectMapper.writeValueAsString(pokemon);
-            WebRequests.postJson(serverUrl + "/users/" + user.getUsername() + "/pokemons", pokemonJson);
+            WebRequests.postJson(serverBase + "/users/" + user.getUsername() + "/pokemons", pokemonJson);
         } else {
             pokemon = user.getPokemons().get(0);
         }
@@ -88,15 +95,20 @@ public class App {
             System.out.println(" [1] Show current stats");
             System.out.println(" [2] Learn a move");
             System.out.println(" [3] Fight against another Pokemon");
+            System.out.println(" [4] Fight online battle");
+            System.out.println(" [5] Join battle");
             System.out.println();
-            System.out.println(" [P] Test P2P");
             if (debug) System.out.println(" [D] Show debugger");
             System.out.println(" [0] Quit");
 
             System.out.println("\nChoose a number:");
             System.out.print("# ");
             String choice = scan.nextLine().toUpperCase();
-            if (choice.equals("0")) break;
+            if (choice.equals("0")) {
+                // Stop server on exit
+                if (Server.isServerStarted()) Server.stop();
+                break;
+            }
             switch (choice) {
                 case "1":
                     System.out.println(pokemon);
@@ -107,14 +119,13 @@ public class App {
                 case "3":
                     battle(scan, pokemon);
                     break;
-
-                case "P":
-                    Javalin app = Javalin.create()
-                            .get("/", context -> context.result("Hello world"))
-                            .start(4321);
-                    scan.nextLine();
-                    app.stop();
+                case "4":
+                    onlineBattle(scan);
                     break;
+                case "5":
+                    joinBattle(scan);
+                    break;
+
                 case "D":
                     System.out.println("Debugger finished");
                     break;
@@ -169,12 +180,47 @@ public class App {
                 Utils.slowPrintlnPause(pokemon.getName() + " did not learn " + move.getName() + ".", 50, scan);
             }
         }
+
+        // Save to multiplayer API
+        String pokemonJson = objectMapper.writeValueAsString(pokemon);
+        WebRequests.putJson(serverBase + "/users/" + user.getUsername() + "/pokemons/0", pokemonJson);
     }
 
     private static void battle(Scanner scan, Pokemon pokemon1) throws InterruptedException, IOException {
         Pokemon opponent = new Pokemon("pikachu", 4, false, true);
         Battle battle = new Battle(pokemon1, opponent);
         battle.startBattle(scan);
+    }
+
+    private static void onlineBattle(Scanner scan) {
+        System.out.print("Enter the username of the player you want to fight against:\n> ");
+        String opponentUsername = scan.nextLine();
+        if (opponentUsername.equals(user.getUsername())) {
+            System.out.println("You can't battle yourself!");
+            return;
+        }
+        try {
+            JSONObject gameJson = WebRequests.postJson(serverBase + "/games", new JSONObject(Map.of(
+                    "player1", user.getUsername(),
+                    "player2", opponentUsername
+            )).toString());
+            String uuid = gameJson.getString("uuid");
+            System.out.println("Game created with UUID " + uuid);
+
+            ClientBattle battle = new ClientBattle(uuid, user, scan);
+            battle.connectToBattle();
+        } catch (IOException e) {
+            System.out.println("Player not found");
+        } catch (URISyntaxException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static void joinBattle(Scanner scan) throws IOException, URISyntaxException, InterruptedException {
+        System.out.print("Enter the UUID of the game to join:\n> ");
+        String uuid = scan.nextLine();
+        ClientBattle battle = new ClientBattle(uuid, user, scan);
+        battle.connectToBattle();
     }
 
     // https://stackoverflow.com/a/28754689
