@@ -15,6 +15,7 @@ public class PokemonMove {
     private int accuracy;
     private String type;
     private int power;
+    private int priority;
     private int levelLearned;
 
     private String moveCategory; // "physical", "special", or "status"
@@ -42,6 +43,7 @@ public class PokemonMove {
         this.power = moveData.optInt("power");
         this.type = JSONTools.getString(moveData, "type.name");
         this.moveCategory = JSONTools.getString(moveData, "damage_class.name");
+        this.priority = moveData.getInt("priority");
 
         dataFetched = true;
     }
@@ -94,6 +96,12 @@ public class PokemonMove {
     }
     public void setPower(int power) {
         this.power = power;
+    }
+    public int getPriority() {
+        return priority;
+    }
+    public void setPriority(int priority) {
+        this.priority = priority;
     }
     public String getMoveCategory() {
         return moveCategory;

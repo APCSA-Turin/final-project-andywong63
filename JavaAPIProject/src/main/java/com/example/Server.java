@@ -4,21 +4,37 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.Javalin;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import static com.example.Constants.objectMapper;
+
 public class Server {
     private static Javalin app;
-    private final static ObjectMapper objectMapper = new ObjectMapper();
     private final static HashMap<String, User> usersDatabase = new HashMap<>();
     private final static HashMap<String, OnlineGame> gamesDatabase = new HashMap<>();
     private static boolean serverStarted = false;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         init();
         start();
+
+        // Initialize user database with players (so I don't need to keep constantly registering)
+        User user1 = new User("DeltAndy");
+        Pokemon pokemon1 = new Pokemon("squirtle", 4, false, true);
+        pokemon1.learnMove(pokemon1.getPossibleMoves().getFirst());
+        pokemon1.learnMove(pokemon1.getPossibleMoves().get(1));
+        user1.addPokemon(pokemon1);
+        User user2 = new User("test");
+        Pokemon pokemon2 = new Pokemon("charmander", 4, false, true);
+        pokemon2.learnMove(pokemon2.getPossibleMoves().getFirst());
+        pokemon2.learnMove(pokemon2.getPossibleMoves().get(1));
+        user2.addPokemon(pokemon2);
+        usersDatabase.put("DeltAndy", user1);
+        usersDatabase.put("test", user2);
     }
 
     public static void init() {
@@ -179,7 +195,7 @@ public class Server {
             ctx.status(200).json(game);
         });
 
-        // /games/{uuid}/ws?player={player}
+        // /games/{uuid}/ws?player={username}
         app.ws("/games/{uuid}/ws", ws -> {
             ws.onConnect(ctx -> {
                 ctx.session.setIdleTimeout(Duration.ofMinutes(5)); // Only close connection after 5 minutes
@@ -188,7 +204,7 @@ public class Server {
                 if (game == null) {
                     // Send game not found message and close websocket
                     ctx.send(objectMapper.writeValueAsString(Map.of(
-                            "type", "ERROR",
+                            "type", "CONNECTION_ERROR",
                             "message", "Game not found"
                     )));
                     ctx.session.close(1008, "Invalid game UUID");
@@ -199,7 +215,7 @@ public class Server {
                 if (username == null || player == null) {
                     // Send player not found message and close websocket
                     ctx.send(objectMapper.writeValueAsString(Map.of(
-                            "type", "ERROR",
+                            "type", "CONNECTION_ERROR",
                             "message", "Player not found"
                     )));
                     ctx.session.close(1008, "Invalid username");
@@ -208,12 +224,13 @@ public class Server {
 
                 if (username.equals(game.getPlayer1().getUsername())) {
                     game.connectPlayer1(ctx);
+                    game.connectWs(ws);
                 } else if (username.equals(game.getPlayer2().getUsername())) {
                     game.connectPlayer2(ctx);
                 } else {
                     // Player is not in current game
                     ctx.send(objectMapper.writeValueAsString(Map.of(
-                            "type", "ERROR",
+                            "type", "CONNECTION_ERROR",
                             "message", "Player is not in this game"
                     )));
                     ctx.session.close(1008, "Invalid player");

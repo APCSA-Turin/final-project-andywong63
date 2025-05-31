@@ -2,7 +2,6 @@ package com.example;
 
 import com.example.Lib.Utils;
 import com.example.Lib.WebRequests;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.json.JSONObject;
 
 import java.io.FileNotFoundException;
@@ -12,11 +11,13 @@ import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import static com.example.Constants.objectMapper;
+
 public class App {
     private static Pokemon pokemon;
     private static User user;
     private static String serverBase = Constants.SERVER_API_BASE;
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static ClientBattle clientBattle;
 
     public static void main(String[] args) throws IOException, InterruptedException, URISyntaxException {
         boolean debug = isDebug();
@@ -97,6 +98,7 @@ public class App {
             System.out.println(" [3] Fight against another Pokemon");
             System.out.println(" [4] Fight online battle");
             System.out.println(" [5] Join battle");
+            System.out.println(" [6] Heal Pokemon");
             System.out.println();
             if (debug) System.out.println(" [D] Show debugger");
             System.out.println(" [0] Quit");
@@ -107,6 +109,8 @@ public class App {
             if (choice.equals("0")) {
                 // Stop server on exit
                 if (Server.isServerStarted()) Server.stop();
+                // Stop websocket client on exit
+                if (clientBattle.isWsOpen()) clientBattle.closeWs();
                 break;
             }
             switch (choice) {
@@ -124,6 +128,9 @@ public class App {
                     break;
                 case "5":
                     joinBattle(scan);
+                    break;
+                case "6":
+                    healPokemon();
                     break;
 
                 case "D":
@@ -145,7 +152,16 @@ public class App {
 
         ArrayList<PokemonMove> moveChoices = new ArrayList<>();
         for (PokemonMove move : possibleMoves) {
-            if (move.getLevelLearned() > pokemon.getLevel() || learntMoves.contains(move)) continue;
+            if (move.getLevelLearned() > pokemon.getLevel()) continue;
+            boolean nextVal = false;
+            for (PokemonMove learntMove : learntMoves) {
+                if (learntMove != null && learntMove.getName().equals(move.getName())) {
+                    // Pokemon already knows this move
+                    nextVal = true;
+                    break;
+                }
+            }
+            if (nextVal) continue;
             moveChoices.add(move);
         }
         for (int i = 0; i < moveChoices.size(); i++) {
@@ -207,8 +223,8 @@ public class App {
             String uuid = gameJson.getString("uuid");
             System.out.println("Game created with UUID " + uuid);
 
-            ClientBattle battle = new ClientBattle(uuid, user, scan);
-            battle.connectToBattle();
+            clientBattle = new ClientBattle(uuid, user, scan);
+            clientBattle.connectToBattle();
         } catch (IOException e) {
             System.out.println("Player not found");
         } catch (URISyntaxException | InterruptedException e) {
@@ -219,8 +235,16 @@ public class App {
     private static void joinBattle(Scanner scan) throws IOException, URISyntaxException, InterruptedException {
         System.out.print("Enter the UUID of the game to join:\n> ");
         String uuid = scan.nextLine();
-        ClientBattle battle = new ClientBattle(uuid, user, scan);
-        battle.connectToBattle();
+        clientBattle = new ClientBattle(uuid, user, scan);
+        clientBattle.connectToBattle();
+    }
+
+    private static void healPokemon() throws IOException {
+        pokemon.setCurrentHp(pokemon.getHpStat());
+
+        // Save to multiplayer API
+        String pokemonJson = objectMapper.writeValueAsString(pokemon);
+        WebRequests.putJson(serverBase + "/users/" + user.getUsername() + "/pokemons/0", pokemonJson);
     }
 
     // https://stackoverflow.com/a/28754689
