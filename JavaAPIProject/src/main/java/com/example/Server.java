@@ -5,6 +5,7 @@ import io.javalin.Javalin;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,7 +21,7 @@ public class Server {
     private final static HashMap<String, OnlineGame> gamesDatabase = new HashMap<>();
     private static boolean serverStarted = false;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, URISyntaxException {
         init();
         start();
 

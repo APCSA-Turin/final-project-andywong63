@@ -141,7 +141,7 @@ public class App {
         }
     }
 
-    private static void learnMove(Scanner scan) throws IOException, InterruptedException {
+    private static void learnMove(Scanner scan) throws IOException, InterruptedException, URISyntaxException {
         ArrayList<PokemonMove> learntMoves = new ArrayList<>(Arrays.asList(pokemon.getLearntMoves()));
         ArrayList<PokemonMove> possibleMoves = pokemon.getPossibleMoves();
 
@@ -239,7 +239,7 @@ public class App {
         updateServer(pokemon, 0);
     }
 
-    private static void healPokemon() throws IOException {
+    private static void healPokemon() throws IOException, URISyntaxException {
         pokemon.setCurrentHp(pokemon.getHpStat());
 
         // Save to multiplayer API
@@ -272,7 +272,7 @@ public class App {
     }
 
     // Update pokemon in server with new values
-    private static void updateServer(Pokemon pokemon, int index) throws IOException {
+    private static void updateServer(Pokemon pokemon, int index) throws IOException, URISyntaxException {
         String pokemonJson = objectMapper.writeValueAsString(pokemon);
         WebRequests.putJson(serverBase + "/users/" + user.getUsername() + "/pokemons/" + index, pokemonJson);
     }

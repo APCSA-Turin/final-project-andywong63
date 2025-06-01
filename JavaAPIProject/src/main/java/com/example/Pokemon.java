@@ -9,6 +9,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -83,7 +84,7 @@ public class Pokemon {
         hpIv = Utils.binaryToInt(digit1 + digit2 + digit3 + digit4);
     }
 
-    public Pokemon(String name, int level, boolean wild, boolean autoFetch) throws IOException {
+    public Pokemon(String name, int level, boolean wild, boolean autoFetch) throws IOException, URISyntaxException {
         this(name, level, wild);
         if (autoFetch) fetchData();
     }
@@ -308,7 +309,7 @@ public class Pokemon {
         if (currentHp < 0) currentHp = 0;
     }
 
-    public void fetchData() throws IOException {
+    public void fetchData() throws IOException, URISyntaxException {
         JSONObject pokemonData = WebRequests.getJson(Constants.POKEAPI_BASE + "/pokemon/" + internalName);
         JSONObject speciesData = WebRequests.getJson(Constants.POKEAPI_BASE + "/pokemon-species/" + internalName);
 

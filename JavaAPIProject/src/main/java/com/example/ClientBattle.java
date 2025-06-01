@@ -64,11 +64,6 @@ public class ClientBattle {
 
             @Override
             public void onClose(int code, String reason, boolean b) {
-//                System.out.println("Connect closed with code " + code + ", reason = " + reason);
-//                if (code != 1000) {
-//                    // Connection closed due to error, print error in console
-//                    System.out.println("An error occurred in the WebSocket connection: " + reason + " (code + " + code + ")");
-//                }
                 battleStartedLatch.countDown(); // Continue rest of code execution in App.java
             }
 

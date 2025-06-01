@@ -5,6 +5,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 
 /**
  * Stores how fast a Pokemon levels up
@@ -19,7 +20,7 @@ public class LevelRate {
      *
      * @param identifier The ID of the level/growth rate, can be numerical (ex: 4) or string (ex: "medium-slow")
      */
-    public LevelRate(String identifier) throws IOException {
+    public LevelRate(String identifier) throws IOException, URISyntaxException {
         xpRequired = new int[100];
         JSONObject response = WebRequests.getJson("https://pokeapi.co/api/v2/growth-rate/" + identifier);
         JSONArray levels = response.getJSONArray("levels");

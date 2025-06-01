@@ -6,6 +6,7 @@ import com.example.Lib.WebRequests;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 
 public class PokemonMove {
     private String internalName;
@@ -25,7 +26,7 @@ public class PokemonMove {
         this.levelLearned = levelLearned;
     }
 
-    public PokemonMove(String name, int levelLearned, boolean autoFetch) throws IOException {
+    public PokemonMove(String name, int levelLearned, boolean autoFetch) throws IOException, URISyntaxException {
         this(name, levelLearned);
         if (autoFetch) fetchData();
     }
@@ -34,7 +35,7 @@ public class PokemonMove {
     public PokemonMove() {
     }
 
-    public void fetchData() throws IOException {
+    public void fetchData() throws IOException, URISyntaxException {
         JSONObject moveData = WebRequests.getJson(Constants.POKEAPI_BASE + "/move/" + internalName);
 
         this.name = PokeAPITools.getEnglishString(moveData.getJSONArray("names"), "name");
