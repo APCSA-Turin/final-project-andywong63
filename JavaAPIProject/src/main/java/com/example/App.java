@@ -16,7 +16,8 @@ import static com.example.Constants.objectMapper;
 public class App {
     private static Pokemon pokemon;
     private static User user;
-    private static String serverBase = Constants.SERVER_API_BASE;
+    private static String serverApiBase = Constants.SERVER_API_BASE;
+    private static String wsApiBase = Constants.WS_API_BASE;
     private static ClientBattle clientBattle;
 
     public static void main(String[] args) throws IOException, InterruptedException, URISyntaxException {
@@ -34,14 +35,14 @@ public class App {
             System.out.println(" [2] Register");
             System.out.println();
             System.out.println(" [R] Run server");
-            System.out.println(" [U] Change server URL");
+            System.out.println(" [U] Change server IP");
             System.out.println("\n");
             String choice = Utils.ask(scan, "Choose an option:", "#").toUpperCase();
             switch (choice) {
                 case "1":
                     String username = Utils.ask(scan, "Please enter your username:", ">");
                     try {
-                        String data = WebRequests.getText(serverBase + "/users/" + username);
+                        String data = WebRequests.getText(serverApiBase + "/users/" + username);
                         user = objectMapper.readValue(data, User.class);
                     } catch (FileNotFoundException e) {
                         System.out.println("Could not find user");
@@ -49,7 +50,7 @@ public class App {
                     break;
                 case "2":
                     String registerUsername = Utils.ask(scan, "Please enter the username to register:", ">");
-                    WebRequests.postJson(serverBase + "/users", new JSONObject(Map.of(
+                    WebRequests.postJson(serverApiBase + "/users", new JSONObject(Map.of(
                             "username", registerUsername
                     )).toString());
                     System.out.println("Successfully registered with username '" + registerUsername + "'");
@@ -60,8 +61,11 @@ public class App {
                     Server.start();
                     break;
                 case "U":
-                    serverBase = Utils.ask(scan, "Please enter the server URL:", ">");
-                    System.out.println("Successfully changed server URL");
+                    String base = Utils.ask(scan, "Please enter the server IP (without the http://):", ">");
+                    serverApiBase = "http://" + base;
+                    wsApiBase = "ws://" + base;
+
+                    System.out.println("Successfully changed server IP");
                     break;
                 default:
                     System.out.println("Invalid input");
@@ -81,7 +85,7 @@ public class App {
 
             user.addPokemon(pokemon);
             String pokemonJson = objectMapper.writeValueAsString(pokemon);
-            WebRequests.postJson(serverBase + "/users/" + user.getUsername() + "/pokemons", pokemonJson);
+            WebRequests.postJson(serverApiBase + "/users/" + user.getUsername() + "/pokemons", pokemonJson);
         } else {
             pokemon = user.getPokemons().get(0);
         }
@@ -207,14 +211,14 @@ public class App {
             return;
         }
         try {
-            JSONObject gameJson = WebRequests.postJson(serverBase + "/games", new JSONObject(Map.of(
+            JSONObject gameJson = WebRequests.postJson(serverApiBase + "/games", new JSONObject(Map.of(
                     "player1", user.getUsername(),
                     "player2", opponentUsername
             )).toString());
             String uuid = gameJson.getString("uuid");
             System.out.println("Game created with UUID " + uuid);
 
-            clientBattle = new ClientBattle(uuid, user, scan);
+            clientBattle = new ClientBattle(wsApiBase, uuid, user, scan);
             clientBattle.connectToBattle();
             // Update objects from server (server has the most updated instances)
             user = clientBattle.getClientPlayer();
@@ -230,7 +234,7 @@ public class App {
 
     private static void joinBattle(Scanner scan) throws IOException, URISyntaxException, InterruptedException {
         String uuid = Utils.ask(scan, "Enter the UUID of the game to join:", ">");
-        clientBattle = new ClientBattle(uuid, user, scan);
+        clientBattle = new ClientBattle(wsApiBase, uuid, user, scan);
         clientBattle.connectToBattle();
         // Update objects from server (server has the most updated instances)
         user = clientBattle.getClientPlayer();
@@ -274,7 +278,7 @@ public class App {
     // Update pokemon in server with new values
     private static void updateServer(Pokemon pokemon, int index) throws IOException, URISyntaxException {
         String pokemonJson = objectMapper.writeValueAsString(pokemon);
-        WebRequests.putJson(serverBase + "/users/" + user.getUsername() + "/pokemons/" + index, pokemonJson);
+        WebRequests.putJson(serverApiBase + "/users/" + user.getUsername() + "/pokemons/" + index, pokemonJson);
     }
 
     // https://stackoverflow.com/a/28754689

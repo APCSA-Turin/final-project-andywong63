@@ -41,8 +41,9 @@ public class Server {
     }
 
     public static void init() {
-        app = Javalin.create()
-                .get("/", ctx -> ctx.result("Hello World"));
+        app = Javalin.create();
+
+        app.get("/", ctx -> ctx.result("Hello World"));
 
         app.post("/users", ctx -> {
             if (!ctx.isJson()) {
@@ -265,7 +266,7 @@ public class Server {
     }
 
     public static void start() {
-        app.start(4321);
+        app.start("0.0.0.0", 4321);
         serverStarted = true;
     }
     public static void stop() {
