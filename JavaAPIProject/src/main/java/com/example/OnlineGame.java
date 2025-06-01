@@ -40,6 +40,21 @@ public class OnlineGame {
         return uuid;
     }
 
+    public boolean isPlayer1Connected() {
+        return player1Connected;
+    }
+    public boolean isPlayer2Connected() {
+        return player2Connected;
+    }
+
+    // Get the player number of the WsContext
+    // Returns 1 or 2, or 0 if none
+    public int getCtxPlayer(WsContext ctx) {
+        if (player1.getUsername().equals(ctx.queryParam("player"))) return 1;
+        else if (player2.getUsername().equals(ctx.queryParam("player"))) return 2;
+        else return 0;
+    }
+
 
     public void connectWs(WsConfig ws) {
         this.ws = ws;
@@ -63,6 +78,14 @@ public class OnlineGame {
         player2Ctx = ctx;
         checkBothConnected(ctx);
     }
+    public void disconnectPlayer1() {
+        player1Connected = false;
+        player1Ctx = null;
+    }
+    public void disconnectPlayer2() {
+        player2Connected = false;
+        player2Ctx = null;
+    }
 
     private void checkBothConnected(WsConnectContext ctx) throws JsonProcessingException {
         if (player1Connected && player2Connected) {
@@ -83,7 +106,7 @@ public class OnlineGame {
             System.out.println("Received message from " + ctx.queryParam("player") + ": " + message);
             switch (message.getString("type")) {
                 case "USE_MOVE":
-                    if (player1.getUsername().equals(ctx.queryParam("player"))) {
+                    if (getCtxPlayer(ctx) == 1) {
                         // Player 1 sent USE_MOVE message
                         PokemonMove move = player1Pokemon.getLearntMoves()[message.getInt("move")];
                         battle.p1UseMove(move);

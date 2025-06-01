@@ -46,26 +46,6 @@ public class JSONTools {
     }
 
     /**
-     * Get a JSONArray value of a JSONObject at a specific path
-     * @param object The object to get the value from
-     * @param path The path, split by periods (example: "users.0.siblings")
-     * @return The value at the path, or null if not found
-     */
-    public static JSONArray getJSONArray(JSONObject object, String path) {
-        return get(object, path, JSONArray.class);
-    }
-
-    /**
-     * Get a JSONObject value of a JSONObject at a specific path
-     * @param object The object to get the value from
-     * @param path The path, split by periods (example: "users.0.siblings")
-     * @return The value at the path, or null if not found
-     */
-    public static JSONObject getJSONObject(JSONObject object, String path) {
-        return get(object, path, JSONObject.class);
-    }
-
-    /**
      * Get a String value of a JSONObject at a specific path
      * @param object The object to get the value from
      * @param path The path, split by periods (example: "users.0.name")
@@ -94,9 +74,7 @@ public class JSONTools {
      * @return The value at the path, or 0 if not found
      */
     public static int getInt(JSONObject object, String path) {
-        Integer integer = get(object, path, Integer.class);
-        if (integer == null) return 0;
-        return integer;
+        return getInt(object, path, 0);
     }
 
 

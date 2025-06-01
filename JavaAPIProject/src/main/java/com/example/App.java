@@ -29,19 +29,17 @@ public class App {
 
         while (user == null) {
             Utils.clearScreen();
-            System.out.println("Login Screen");
+            System.out.println(Utils.ansiText("Final Project: Pokemon Simulation", "1;4"));
             System.out.println(" [1] Sign In");
             System.out.println(" [2] Register");
             System.out.println();
             System.out.println(" [R] Run server");
             System.out.println(" [U] Change server URL");
-            System.out.println("\nChoose a number:");
-            System.out.print("# ");
-            String choice = scan.nextLine().toUpperCase();
+            System.out.println("\n");
+            String choice = Utils.ask(scan, "Choose an option:", "#").toUpperCase();
             switch (choice) {
                 case "1":
-                    System.out.print("Please enter your username:\n> ");
-                    String username = scan.nextLine();
+                    String username = Utils.ask(scan, "Please enter your username:", ">");
                     try {
                         String data = WebRequests.getText(serverBase + "/users/" + username);
                         user = objectMapper.readValue(data, User.class);
@@ -50,8 +48,7 @@ public class App {
                     }
                     break;
                 case "2":
-                    System.out.print("Please enter the username to register:\n> ");
-                    String registerUsername = scan.nextLine();
+                    String registerUsername = Utils.ask(scan, "Please enter the username to register:", ">");
                     WebRequests.postJson(serverBase + "/users", new JSONObject(Map.of(
                             "username", registerUsername
                     )).toString());
@@ -63,8 +60,7 @@ public class App {
                     Server.start();
                     break;
                 case "U":
-                    System.out.print("Please enter the server URL:\n> ");
-                    serverBase = scan.nextLine();
+                    serverBase = Utils.ask(scan, "Please enter the server URL:", ">");
                     System.out.println("Successfully changed server URL");
                     break;
                 default:
@@ -77,9 +73,8 @@ public class App {
         }
 
         if (user.getPokemons().isEmpty()) {
-            System.out.print("Enter a Pokemon name: ");
-            String pokemonName = scan.nextLine();
-            pokemon = new Pokemon(pokemonName, 4, false);
+            String pokemonName = Utils.ask(scan, "Enter a Pokemon name: ", ">");
+            pokemon = new Pokemon(pokemonName, 100, false);
             System.out.println("Fetching Pokemon data...");
             pokemon.fetchData();
             System.out.println("Fetched data for " + pokemon.getName());
@@ -92,44 +87,44 @@ public class App {
         }
 
         while (true) {
+            Utils.clearScreen();
+
             System.out.println("Pokemon Simulation");
             System.out.println(" [1] Show current stats");
             System.out.println(" [2] Learn a move");
-            System.out.println(" [3] Fight against another Pokemon");
-            System.out.println(" [4] Fight online battle");
-            System.out.println(" [5] Join battle");
-            System.out.println(" [6] Heal Pokemon");
+            System.out.println(" [3] Fight online battle");
+            System.out.println(" [4] Join battle");
+            System.out.println(" [5] Heal Pokemon");
             System.out.println();
             if (debug) System.out.println(" [D] Show debugger");
             System.out.println(" [0] Quit");
 
-            System.out.println("\nChoose a number:");
-            System.out.print("# ");
-            String choice = scan.nextLine().toUpperCase();
+            String choice = Utils.ask(scan, "Choose an option:", "#");
             if (choice.equals("0")) {
                 // Stop server on exit
                 if (Server.isServerStarted()) Server.stop();
                 // Stop websocket client on exit
-                if (clientBattle.isWsOpen()) clientBattle.closeWs();
+                if (clientBattle != null && clientBattle.isWsOpen()) clientBattle.closeWs();
                 break;
             }
+            boolean enterToContinue = false;
             switch (choice) {
                 case "1":
                     System.out.println(pokemon);
+                    enterToContinue = true;
                     break;
                 case "2":
                     learnMove(scan);
                     break;
                 case "3":
-                    battle(scan, pokemon);
+                    onlineBattle(scan);
+                    enterToContinue = true;
                     break;
                 case "4":
-                    onlineBattle(scan);
+                    joinBattle(scan);
+                    enterToContinue = true;
                     break;
                 case "5":
-                    joinBattle(scan);
-                    break;
-                case "6":
                     healPokemon();
                     break;
 
@@ -139,78 +134,74 @@ public class App {
                 default:
                     System.out.println("Invalid input");
             }
-            System.out.print("Press enter to continue");
-            scan.nextLine();
-            System.out.println("\n\n");
-            Utils.clearScreen();
+            if (enterToContinue) {
+                System.out.print("Press enter to continue");
+                scan.nextLine();
+            }
         }
     }
 
     private static void learnMove(Scanner scan) throws IOException, InterruptedException {
-        List<PokemonMove> learntMoves = Arrays.asList(pokemon.getLearntMoves());
+        ArrayList<PokemonMove> learntMoves = new ArrayList<>(Arrays.asList(pokemon.getLearntMoves()));
         ArrayList<PokemonMove> possibleMoves = pokemon.getPossibleMoves();
 
         ArrayList<PokemonMove> moveChoices = new ArrayList<>();
         for (PokemonMove move : possibleMoves) {
-            if (move.getLevelLearned() > pokemon.getLevel()) continue;
-            boolean nextVal = false;
-            for (PokemonMove learntMove : learntMoves) {
+            if (move.getLevelLearned() > pokemon.getLevel()) continue; // Only show moves that this pokemon has a high enough level for
+            boolean alreadyLearned = false;
+            for (PokemonMove learntMove : learntMoves) { // Check if pokemon already knows this move
                 if (learntMove != null && learntMove.getName().equals(move.getName())) {
                     // Pokemon already knows this move
-                    nextVal = true;
+                    alreadyLearned = true;
                     break;
                 }
             }
-            if (nextVal) continue;
+            if (alreadyLearned) continue;
             moveChoices.add(move);
         }
-        for (int i = 0; i < moveChoices.size(); i++) {
-            System.out.println(" [" + (i + 1) + "] " + moveChoices.get(i));
-            System.out.println("\n\n");
+        if (moveChoices.isEmpty()) {
+            Utils.slowPrintlnPause(pokemon.getName() + " does not have any moves to learn.", 35, scan);
+            return;
         }
 
-        int choice = Utils.askInt(scan, "Choose a number to learn the move:");
-        if (choice < 1) {
-            System.out.println("That number is too small!");
-            return;
-        } else if (choice > moveChoices.size()) {
-            System.out.println("That number is too large!");
-            return;
-        }
-        PokemonMove move = moveChoices.get(choice - 1);
+        PokemonMove move = chooseMove(moveChoices, "Choose a number to learn the move, or 0 to cancel:", scan, true);
+        if (move == null) return;
 
         boolean learnSuccess = pokemon.learnMove(move);
         if (learnSuccess) {
             Utils.slowPrintlnPause(pokemon.getName() + " learned " + move.getName() + "!", 50, scan);
         } else {
+            // Pokemon already knows 4 moves, ask user to replace old move
             String message = pokemon.getName() + " is trying to learn " + move.getName() + ", but it already knows 4 moves.";
             Utils.slowPrintln(message, 40, scan);
             TimeUnit.MILLISECONDS.sleep(500);
             message = "Forget an old move to learn " + move.getName() + "?";
             Utils.slowPrintln(message, 40, scan);
-            System.out.print("[Y/N] ");
-            String input = scan.nextLine();
+            String input = Utils.ask(scan, "", "[Y/N] ");
             if (input.equals("Y")) {
-                // TODO: Implement forgetting old move
-            } else {
-                Utils.slowPrintlnPause(pokemon.getName() + " did not learn " + move.getName() + ".", 50, scan);
+                PokemonMove forgetMove = chooseMove(learntMoves, "Choose a number to forget the move, or 0 to cancel:", scan, true);
+                if (forgetMove != null) {
+                    pokemon.forgetMove(forgetMove);
+                    pokemon.learnMove(move);
+                    Utils.slowPrintln(pokemon.getName() + " forgot " + forgetMove.getName() + "...", 50, scan);
+                    TimeUnit.MILLISECONDS.sleep(200);
+                    Utils.slowPrintlnPause("and learned " + move.getName() + "!", 50, scan);
+                    learnSuccess = true;
+                }
             }
         }
 
-        // Save to multiplayer API
-        String pokemonJson = objectMapper.writeValueAsString(pokemon);
-        WebRequests.putJson(serverBase + "/users/" + user.getUsername() + "/pokemons/0", pokemonJson);
+        if (learnSuccess) {
+            // Save to multiplayer API
+            updateServer(pokemon, 0);
+        } else {
+            Utils.slowPrintlnPause(pokemon.getName() + " did not learn " + move.getName() + ".", 50, scan);
+        }
     }
 
-    private static void battle(Scanner scan, Pokemon pokemon1) throws InterruptedException, IOException {
-        Pokemon opponent = new Pokemon("pikachu", 4, false, true);
-        Battle battle = new Battle(pokemon1, opponent);
-        battle.startBattle(scan);
-    }
-
+    // Create a new game and join the game
     private static void onlineBattle(Scanner scan) {
-        System.out.print("Enter the username of the player you want to fight against:\n> ");
-        String opponentUsername = scan.nextLine();
+        String opponentUsername = Utils.ask(scan, "Enter the username of the player you want to fight against:", ">");
         if (opponentUsername.equals(user.getUsername())) {
             System.out.println("You can't battle yourself!");
             return;
@@ -225,6 +216,11 @@ public class App {
 
             clientBattle = new ClientBattle(uuid, user, scan);
             clientBattle.connectToBattle();
+            // Update objects from server (server has the most updated instances)
+            user = clientBattle.getClientPlayer();
+            pokemon = user.getPokemons().getFirst();
+            // Since pokemon may have gained xp (from defeating other pokemon), update values in multiplayer API
+            updateServer(pokemon, 0);
         } catch (IOException e) {
             System.out.println("Player not found");
         } catch (URISyntaxException | InterruptedException e) {
@@ -233,18 +229,52 @@ public class App {
     }
 
     private static void joinBattle(Scanner scan) throws IOException, URISyntaxException, InterruptedException {
-        System.out.print("Enter the UUID of the game to join:\n> ");
-        String uuid = scan.nextLine();
+        String uuid = Utils.ask(scan, "Enter the UUID of the game to join:", ">");
         clientBattle = new ClientBattle(uuid, user, scan);
         clientBattle.connectToBattle();
+        // Update objects from server (server has the most updated instances)
+        user = clientBattle.getClientPlayer();
+        pokemon = user.getPokemons().getFirst();
+        // Since pokemon may have gained xp (from defeating other pokemon), update values in multiplayer API
+        updateServer(pokemon, 0);
     }
 
     private static void healPokemon() throws IOException {
         pokemon.setCurrentHp(pokemon.getHpStat());
 
         // Save to multiplayer API
+        updateServer(pokemon, 0);
+    }
+
+
+    // Show menu to choose a move
+    // Can be used for learning a new move or forgetting an old move
+    private static PokemonMove chooseMove(ArrayList<PokemonMove> moves, String ask, Scanner scan, boolean cancelable) throws IOException, InterruptedException {
+        while (true) {
+            Utils.clearScreen();
+
+            for (int i = 0; i < moves.size(); i++) {
+                System.out.println(" [" + (i + 1) + "] " + moves.get(i));
+                System.out.println("\n\n");
+            }
+
+            int choice = Utils.askInt(scan, ask);
+            if (choice == 0 && cancelable) {
+                return null;
+            } else if (choice < 1) {
+                Utils.slowPrintlnPause("That number is too small!", 30, scan);
+            } else if (choice > moves.size()) {
+                Utils.slowPrintlnPause("That number is too large!", 30, scan);
+            } else {
+                return moves.get(choice - 1);
+            }
+        }
+    }
+
+    // Update pokemon in server with new values
+    private static void updateServer(Pokemon pokemon, int index) throws IOException {
         String pokemonJson = objectMapper.writeValueAsString(pokemon);
-        WebRequests.putJson(serverBase + "/users/" + user.getUsername() + "/pokemons/0", pokemonJson);
+        WebRequests.putJson(serverBase + "/users/" + user.getUsername() + "/pokemons/" + index, pokemonJson);
     }
 
     // https://stackoverflow.com/a/28754689

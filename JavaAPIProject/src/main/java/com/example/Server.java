@@ -14,7 +14,9 @@ import static com.example.Constants.objectMapper;
 
 public class Server {
     private static Javalin app;
+    // Key: username
     private final static HashMap<String, User> usersDatabase = new HashMap<>();
+    // Key: uuid
     private final static HashMap<String, OnlineGame> gamesDatabase = new HashMap<>();
     private static boolean serverStarted = false;
 
@@ -24,12 +26,12 @@ public class Server {
 
         // Initialize user database with players (so I don't need to keep constantly registering)
         User user1 = new User("DeltAndy");
-        Pokemon pokemon1 = new Pokemon("squirtle", 4, false, true);
+        Pokemon pokemon1 = new Pokemon("squirtle", 5, false, true);
         pokemon1.learnMove(pokemon1.getPossibleMoves().getFirst());
         pokemon1.learnMove(pokemon1.getPossibleMoves().get(1));
         user1.addPokemon(pokemon1);
         User user2 = new User("test");
-        Pokemon pokemon2 = new Pokemon("charmander", 4, false, true);
+        Pokemon pokemon2 = new Pokemon("charmander", 5, false, true);
         pokemon2.learnMove(pokemon2.getPossibleMoves().getFirst());
         pokemon2.learnMove(pokemon2.getPossibleMoves().get(1));
         user2.addPokemon(pokemon2);
@@ -198,6 +200,9 @@ public class Server {
         // /games/{uuid}/ws?player={username}
         app.ws("/games/{uuid}/ws", ws -> {
             ws.onConnect(ctx -> {
+                String message = "WebSocket for game " + ctx.pathParam("uuid") + " opened for player " + ctx.queryParam("player");
+                System.out.println(message);
+
                 ctx.session.setIdleTimeout(Duration.ofMinutes(5)); // Only close connection after 5 minutes
 
                 OnlineGame game = gamesDatabase.get(ctx.pathParam("uuid"));
@@ -234,6 +239,25 @@ public class Server {
                             "message", "Player is not in this game"
                     )));
                     ctx.session.close(1008, "Invalid player");
+                }
+            });
+
+            ws.onClose(ctx -> {
+                OnlineGame game = gamesDatabase.get(ctx.pathParam("uuid"));
+                if (game == null) return;
+
+                String message = "WebSocket for game " + ctx.pathParam("uuid") + " closed for player " + ctx.queryParam("player")
+                        + " with status " + ctx.closeStatus() + ", reason = " + ctx.reason();
+                System.out.println(message);
+
+                if (game.getCtxPlayer(ctx) == 1) {
+                    game.disconnectPlayer1();
+                } else if (game.getCtxPlayer(ctx) == 2) {
+                    game.disconnectPlayer2();
+                }
+                if (!game.isPlayer1Connected() && !game.isPlayer2Connected()) {
+                    // Both players disconnected from server, delete game from games database
+                    gamesDatabase.remove(game.getUuid());
                 }
             });
         });

@@ -42,6 +42,10 @@ public class ClientBattle {
         this(Constants.WS_API_BASE, uuid, player, scan);
     }
 
+    public User getClientPlayer() {
+        return clientPlayer;
+    }
+
     public void connectWs() throws URISyntaxException, JsonProcessingException, InterruptedException {
         wsClient = new WebSocketClient(new URI(wsBase + "/games/" + uuid + "/ws?player=" + clientPlayer.getUsername())) {
             @Override
@@ -59,7 +63,12 @@ public class ClientBattle {
             }
 
             @Override
-            public void onClose(int i, String s, boolean b) {
+            public void onClose(int code, String reason, boolean b) {
+//                System.out.println("Connect closed with code " + code + ", reason = " + reason);
+//                if (code != 1000) {
+//                    // Connection closed due to error, print error in console
+//                    System.out.println("An error occurred in the WebSocket connection: " + reason + " (code + " + code + ")");
+//                }
                 battleStartedLatch.countDown(); // Continue rest of code execution in App.java
             }
 
@@ -77,7 +86,7 @@ public class ClientBattle {
     }
 
     public boolean isWsOpen() {
-        return wsClient.isOpen();
+        return wsClient != null && wsClient.isOpen();
     }
 
     public void onMessage(JSONObject message) throws IOException, InterruptedException {
@@ -120,6 +129,7 @@ public class ClientBattle {
         }
     }
 
+    // Returns the User object of the player from the server
     public void connectToBattle() throws InterruptedException, IOException, URISyntaxException {
         connectWs();
         System.out.println("Currently waiting for opponent...");
@@ -142,14 +152,14 @@ public class ClientBattle {
                 Utils.slowPrintln("You sent out " + clientPlayerPokemon.getName() + "!", 50, scan);
                 TimeUnit.MILLISECONDS.sleep(500);
 
-                showMenu();
+                showMenu(); // Main game loop
+
+                // Game ended, close WebSocket
+                wsClient.close(1000, "Game finished");
+                battleStartedLatch.countDown(); // Continue rest of code execution
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-
-            // Game ended, close WebSocket
-            wsClient.close();
-            battleStartedLatch.countDown(); // Continue rest of code execution
         }).start();
     }
 
@@ -184,7 +194,7 @@ public class ClientBattle {
         System.out.println("You -> " + clientPlayerPokemon.getName() + " (Lvl " + clientPlayerPokemon.getLevel() + ")");
         System.out.println(" - HP: " + p1Bar + " (" + clientPlayerPokemon.hpFraction() + ")");
         System.out.println(opponentPlayer.getUsername() + " -> " + opponentPlayerPokemon.getName() + " (Lvl " + opponentPlayerPokemon.getLevel() + ")");
-        System.out.println(" - HP: " + p2Bar + " (" + opponentPlayerPokemon.hpFraction() + ")");
+        System.out.println(" - HP: " + p2Bar);
         System.out.println();
     }
 

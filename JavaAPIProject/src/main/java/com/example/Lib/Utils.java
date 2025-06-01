@@ -79,8 +79,26 @@ public class Utils {
         return result.toString();
     }
 
+
     /**
-     * Uses Scanner to ask the user for a numerical input, retrying if invalid
+     * Uses Scanner to ask the user for a string input, with styling
+     * @param scan The Scanner to use
+     * @param ask The question shown
+     * @param prefix The prefix before the user input area
+     * @return The received input
+     */
+    public static String ask(Scanner scan, String ask, String prefix) {
+        // If question is blank, don't add the extra line break
+        if (ask != null && !ask.isBlank()) ask += "\n";
+        else ask = "";
+        System.out.print(ask + prefix + " \033[37m");
+        String result = scan.nextLine();
+        System.out.print("\033[0m");
+        return result;
+    }
+
+    /**
+     * Uses Scanner to ask the user for a numerical input, with styling, retrying if invalid
      * @param scan The Scanner to use
      * @param ask The question shown
      * @return The received input
@@ -88,10 +106,9 @@ public class Utils {
     public static int askInt(Scanner scan, String ask) {
         while (true) {
             try {
-                System.out.print(ask + "\n# ");
-                return Integer.parseInt(scan.nextLine());
+                return Integer.parseInt(ask(scan, ask, "#"));
             } catch (NumberFormatException e) { // Input was not a number
-                System.out.println("That is an invalid input.");
+                System.out.println("That is not a number.");
             }
         }
     }
@@ -106,5 +123,16 @@ public class Utils {
     }
     public static int binaryToInt(String binary) {  // https://stackoverflow.com/a/10179008
         return Integer.parseInt(binary, 2);
+    }
+
+    /**
+     * Style a text portion with ANSI<br>
+     * Uses codes from <a href="https://en.wikipedia.org/wiki/ANSI_escape_code#Select_Graphic_Rendition_parameters">https://en.wikipedia.org/wiki/ANSI_escape_code</a>
+     * @param text The text to style
+     * @param ansi The ANSI numerical codes, separated by semicolons
+     * @return The printable text
+     */
+    public static String ansiText(String text, String ansi) {
+        return "\033[" + ansi + "m" + text + "\033[0m";
     }
 }

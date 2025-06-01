@@ -384,6 +384,15 @@ public class Pokemon {
         }
         return false;
     }
+    public boolean forgetMove(PokemonMove move) {
+        for (int i = 0; i < 4; i++) {
+            if (learntMoves[i].getInternalName().equals(move.getInternalName())) {
+                learntMoves[i] = null;
+                return true;
+            }
+        }
+        return false;
+    }
 
 
     @Override
@@ -425,24 +434,14 @@ public class Pokemon {
     }
 
 
-    // TODO: Switch to separate Battle class
-    // https://bulbapedia.bulbagarden.net/wiki/Experience#Gain_formula
+    // Gain XP and update EVs from defeating a pokemon
     public void defeatPokemon(Pokemon otherPokemon) {
-        if (!dataFetched) throw new IllegalStateException("Pokemon data for " + internalName + " has not been fetched yet. Call fetchData() first before calling this method.");
-        if (!otherPokemon.dataFetched) throw new IllegalStateException("Pokemon data for " + otherPokemon.internalName + " has not been fetched yet. Call fetchData() first before calling this method.");
-
-        double b = otherPokemon.baseXpYield;
-        double L = otherPokemon.level;
-        double s = 1; // Total amount of Pokemon in battle, TODO: Implement
-        double a = 1.5;
-        if (otherPokemon.wild) a = 1;
-
-        double xpGained = ((b * L) / 7) * (1 / s) * a;
+        int xpGained = getXpGained(otherPokemon);
 
         int oldXp = xp;
         int oldLevel = level;
 
-        xp += (int) xpGained;
+        xp += xpGained;
         System.out.println("Gained " + xpGained + " xp (" + oldXp + " -> " + xp + ")");
         level = levelRate.getLevel(xp);
         if (level != oldLevel) {
@@ -459,6 +458,20 @@ public class Pokemon {
         defenseEv += otherPokemon.baseDefense;
         specialEv += otherPokemon.baseSpecial;
         speedEv += otherPokemon.baseSpeed;
+    }
+
+    // https://bulbapedia.bulbagarden.net/wiki/Experience#Gain_formula
+    private int getXpGained(Pokemon otherPokemon) {
+        if (!dataFetched) throw new IllegalStateException("Pokemon data for " + internalName + " has not been fetched yet. Call fetchData() first before calling this method.");
+        if (!otherPokemon.dataFetched) throw new IllegalStateException("Pokemon data for " + otherPokemon.internalName + " has not been fetched yet. Call fetchData() first before calling this method.");
+
+        double b = otherPokemon.baseXpYield;
+        double L = otherPokemon.level;
+        double s = 1; // Total amount of Pokemon in battle, TODO: Implement
+        double a = 1.5;
+        if (otherPokemon.wild) a = 1;
+
+        return (int) (((b * L) / 7) * (1 / s) * a);
     }
 
     // Formula: https://bulbapedia.bulbagarden.net/wiki/Damage#Generation_I
