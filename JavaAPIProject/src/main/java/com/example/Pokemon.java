@@ -311,7 +311,7 @@ public class Pokemon {
 
     public void fetchData() throws IOException, URISyntaxException {
         JSONObject pokemonData = WebRequests.getJson(Constants.POKEAPI_BASE + "/pokemon/" + internalName);
-        JSONObject speciesData = WebRequests.getJson(Constants.POKEAPI_BASE + "/pokemon-species/" + internalName);
+        JSONObject speciesData = WebRequests.getJson(JSONTools.getString(pokemonData, "species.url"));
 
         type = JSONTools.getString(pokemonData, "types.0.type.name");
         subType = JSONTools.getString(pokemonData, "types.1.type.name");

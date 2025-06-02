@@ -1,7 +1,6 @@
 package com.example;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-
+import java.io.IOException;
 import java.util.Map;
 
 public class BackendBattle {
@@ -19,16 +18,16 @@ public class BackendBattle {
         player2Move = null;
     }
 
-    public void p1UseMove(PokemonMove move) throws JsonProcessingException {
+    public void p1UseMove(PokemonMove move) throws IOException {
         player1Move = move;
         bothUseMove();
     }
-    public void p2UseMove(PokemonMove move) throws JsonProcessingException {
+    public void p2UseMove(PokemonMove move) throws IOException {
         player2Move = move;
         bothUseMove();
     }
 
-    public void bothUseMove() throws JsonProcessingException {
+    public void bothUseMove() throws IOException {
         if (player1Move == null || player2Move == null) return;
 
         // Find first pokemon to use the move
@@ -83,5 +82,7 @@ public class BackendBattle {
 
         player1Move = null;
         player2Move = null;
+
+        Server.saveDb();
     }
 }

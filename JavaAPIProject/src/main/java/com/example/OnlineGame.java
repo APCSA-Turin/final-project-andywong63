@@ -67,7 +67,7 @@ public class OnlineGame {
         )));
         player1Connected = true;
         player1Ctx = ctx;
-        checkBothConnected(ctx);
+        checkBothConnected();
     }
     public void connectPlayer2(WsConnectContext ctx) throws JsonProcessingException {
         ctx.send(objectMapper.writeValueAsString(Map.of(
@@ -76,7 +76,7 @@ public class OnlineGame {
         )));
         player2Connected = true;
         player2Ctx = ctx;
-        checkBothConnected(ctx);
+        checkBothConnected();
     }
     public void disconnectPlayer1() {
         player1Connected = false;
@@ -87,7 +87,7 @@ public class OnlineGame {
         player2Ctx = null;
     }
 
-    private void checkBothConnected(WsConnectContext ctx) throws JsonProcessingException {
+    private void checkBothConnected() throws JsonProcessingException {
         if (player1Connected && player2Connected) {
             broadcastToAll(Map.of(
                     "type", "START_GAME"
@@ -128,13 +128,5 @@ public class OnlineGame {
     }
     public void broadcastToAll(Map<String, Object> map) throws JsonProcessingException {
         broadcastToAll(objectMapper.writeValueAsString(map));
-    }
-
-
-    private void sendError(WsContext ctx, String message) throws JsonProcessingException {
-        ctx.send(objectMapper.writeValueAsString(Map.of(
-                "type", "ERROR",
-                "message", message
-        )));
     }
 }

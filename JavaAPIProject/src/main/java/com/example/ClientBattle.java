@@ -46,7 +46,7 @@ public class ClientBattle {
         return clientPlayer;
     }
 
-    public void connectWs() throws URISyntaxException, JsonProcessingException, InterruptedException {
+    private void connectWs() throws URISyntaxException, JsonProcessingException, InterruptedException {
         wsClient = new WebSocketClient(new URI(wsBase + "/games/" + uuid + "/ws?player=" + clientPlayer.getUsername())) {
             @Override
             public void onOpen(ServerHandshake serverHandshake) {
@@ -110,14 +110,11 @@ public class ClientBattle {
                 break;
             case "MOVES_USED":
                 movesUsed(message);
-                moveUsedLatch.countDown();
+                moveUsedLatch.countDown(); // Continue code execution in showMenu loop
                 break;
 
             case "CONNECTION_ERROR":
                 System.err.println("An error occurred during connection to WebSocket: " + message.getString("message"));
-                break;
-            case "DEBUG":
-                System.out.println("Received debug message from server");
                 break;
             default:
                 System.out.println("Websocket received unknown message: " + message);
@@ -131,7 +128,7 @@ public class ClientBattle {
         battleStartedLatch.await(); // Pause code execution (so it doesn't go back to menu in App.java)
     }
 
-    public void startBattle() throws IOException, InterruptedException {
+    public void startBattle() {
         pokemonDefeated = false;
         new Thread(() -> { // Create a new thread for the battle to prevent blocking new messages from websocket
             try {

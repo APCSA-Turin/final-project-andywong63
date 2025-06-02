@@ -1,6 +1,6 @@
 package com.example.Lib;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
@@ -134,5 +134,32 @@ public class Utils {
      */
     public static String ansiText(String text, String ansi) {
         return "\033[" + ansi + "m" + text + "\033[0m";
+    }
+
+
+    // https://www.baeldung.com/java-write-to-file
+    public static void saveToFile(String filePath, String contents) throws IOException {
+        BufferedWriter writer = new BufferedWriter(new FileWriter(filePath));
+        writer.write(contents);
+        writer.close();
+    }
+
+    // https://beginnersbook.com/2014/01/how-to-read-file-in-java-using-bufferedreader/
+    public static String readFromFile(String filePath) throws IOException {
+        StringBuilder result = new StringBuilder();
+
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(filePath));
+            String line = reader.readLine();
+            while (line != null) {
+                result.append(line);
+                result.append("\n");
+                line = reader.readLine();
+            }
+
+            return result.toString();
+        } catch (FileNotFoundException e) {
+            return null;
+        }
     }
 }

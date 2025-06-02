@@ -71,14 +71,14 @@ public class App {
                     System.out.println("Invalid input");
             }
             if (user == null) {
-                System.out.print("Press enter to continue");
+                System.out.print(Utils.ansiText("Press enter to continue", "3"));
                 scan.nextLine();
             }
         }
 
         if (user.getPokemons().isEmpty()) {
             String pokemonName = Utils.ask(scan, "Enter a Pokemon name: ", ">");
-            pokemon = new Pokemon(pokemonName, 100, false);
+            pokemon = new Pokemon(pokemonName, 5, false);
             System.out.println("Fetching Pokemon data...");
             pokemon.fetchData();
             System.out.println("Fetched data for " + pokemon.getName());
@@ -87,7 +87,7 @@ public class App {
             String pokemonJson = objectMapper.writeValueAsString(pokemon);
             WebRequests.postJson(serverApiBase + "/users/" + user.getUsername() + "/pokemons", pokemonJson);
         } else {
-            pokemon = user.getPokemons().get(0);
+            pokemon = user.getPokemons().getFirst();
         }
 
         while (true) {
@@ -139,7 +139,7 @@ public class App {
                     System.out.println("Invalid input");
             }
             if (enterToContinue) {
-                System.out.print("Press enter to continue");
+                System.out.print(Utils.ansiText("Press enter to continue", "3"));
                 scan.nextLine();
             }
         }
@@ -168,7 +168,7 @@ public class App {
             return;
         }
 
-        PokemonMove move = chooseMove(moveChoices, "Choose a number to learn the move, or 0 to cancel:", scan, true);
+        PokemonMove move = chooseMove(moveChoices, "Choose a number to learn the move, or 0 to cancel:", scan);
         if (move == null) return;
 
         boolean learnSuccess = pokemon.learnMove(move);
@@ -183,7 +183,7 @@ public class App {
             Utils.slowPrintln(message, 40, scan);
             String input = Utils.ask(scan, "", "[Y/N] ");
             if (input.equals("Y")) {
-                PokemonMove forgetMove = chooseMove(learntMoves, "Choose a number to forget the move, or 0 to cancel:", scan, true);
+                PokemonMove forgetMove = chooseMove(learntMoves, "Choose a number to forget the move, or 0 to cancel:", scan);
                 if (forgetMove != null) {
                     pokemon.forgetMove(forgetMove);
                     pokemon.learnMove(move);
@@ -253,7 +253,7 @@ public class App {
 
     // Show menu to choose a move
     // Can be used for learning a new move or forgetting an old move
-    private static PokemonMove chooseMove(ArrayList<PokemonMove> moves, String ask, Scanner scan, boolean cancelable) throws IOException, InterruptedException {
+    private static PokemonMove chooseMove(ArrayList<PokemonMove> moves, String ask, Scanner scan) throws IOException, InterruptedException {
         while (true) {
             Utils.clearScreen();
 
@@ -263,7 +263,7 @@ public class App {
             }
 
             int choice = Utils.askInt(scan, ask);
-            if (choice == 0 && cancelable) {
+            if (choice == 0) {
                 return null;
             } else if (choice < 1) {
                 Utils.slowPrintlnPause("That number is too small!", 30, scan);

@@ -36,16 +36,4 @@ public class PokeAPITools {
         }
         return null;
     }
-
-    public static int getIntIf(JSONArray dataArr, String returnKey, String ifKey, String ifKeyEquals) {
-        for (Object data : dataArr) {
-            if (!(data instanceof JSONObject)) continue;
-            JSONObject dataObj = (JSONObject) data;
-
-            if (JSONTools.getString(dataObj, ifKey).equals(ifKeyEquals)) {
-                return JSONTools.getInt(dataObj, returnKey);
-            }
-        }
-        return 0;
-    }
 }

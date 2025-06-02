@@ -3,8 +3,6 @@ package com.example.Lib;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
-
 public class JSONTools {
     /**
      * Get a value of a JSONObject at a specific path
@@ -75,21 +73,5 @@ public class JSONTools {
      */
     public static int getInt(JSONObject object, String path) {
         return getInt(object, path, 0);
-    }
-
-
-    /**
-     * Convert a JSONArray object to an ArrayList object
-     * @param jsonArray The JSONArray object to convert
-     * @return The ArrayList of the JSONArray
-     * @param <T> The type of values in the array
-     */
-    @SuppressWarnings("unchecked") // Ignore unchecked cast
-    public static <T> ArrayList<T> toArrayList(JSONArray jsonArray) {
-        ArrayList<T> arrayList = new ArrayList<>();
-        for (int i = 0; i < jsonArray.length(); i++) {
-            arrayList.add((T) jsonArray.get(i));
-        }
-        return arrayList;
     }
 }
